@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "RetailOps API",
-    "version": "1.5.1",
+    "version": "1.5.3",
     "description": "OpenAPI documentation for the RetailOps API."
   },
   "servers": [

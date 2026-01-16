@@ -10,3 +10,7 @@ if [ ! -f ".env" ]; then
 fi
 
 docker compose up -d --build
+
+if [ -d "frontend" ]; then
+  (cd frontend && nohup npm run dev >/dev/null 2>&1 &)
+fi

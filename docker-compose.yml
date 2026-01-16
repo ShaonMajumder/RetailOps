@@ -10,7 +10,7 @@ services:
       - .:/var/www/html
       - vendor:/var/www/html/vendor
       - composer_cache:/composer/cache
-      - ./docker/environment/.env.local:/var/www/html/.env:ro
+      - .env:/var/www/html/.env:ro
     depends_on:
       db:
         condition: service_healthy

@@ -26,3 +26,4 @@ Thumbs.db
 agent.md
 docs/
 frontend/.env.local
+.env.bak

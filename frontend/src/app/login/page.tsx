@@ -172,19 +172,6 @@ export default function LoginPage() {
     window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
   };
 
-  const handleLogout = async () => {
-    setMessage(null);
-    setError(null);
-    try {
-      await apiRequest(settings, "/api/auth/logout", { method: "POST", includeTenant: false });
-      settings.clearAuth();
-      setMessage("Logged out. Token cleared.");
-    } catch (err) {
-      const payload = err as { message?: string };
-      setError(payload?.message || "Logout failed.");
-    }
-  };
-
   return (
     <div className="card" style={{ maxWidth: "520px", width: "100%" }}>
       <div className="card-title">RetailOps access</div>
@@ -267,15 +254,14 @@ export default function LoginPage() {
               value={loginForm.password}
               onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
             />
-            <div className="form-row inline">
-              <button className="btn primary" onClick={handleLogin}>
+            <div className="form-row">
+              <button className="btn primary" onClick={handleLogin} style={{ width: "100%" }}>
                 Login
               </button>
-              <button className="btn ghost" onClick={handleGoogleLogin}>
+            </div>
+            <div className="form-row">
+              <button className="btn ghost" onClick={handleGoogleLogin} style={{ width: "100%" }}>
                 Login with Google
-              </button>
-              <button className="btn ghost" onClick={handleLogout}>
-                Logout
               </button>
             </div>
           </>

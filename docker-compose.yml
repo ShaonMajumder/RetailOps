@@ -1,0 +1,151 @@
+services:
+  app:
+    build:
+      context: .
+    image: retailops-app
+    container_name: retailops_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+      - composer_cache:/composer/cache
+      - ./docker/environment/.env.local:/var/www/html/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - COMPOSER_CACHE_DIR=/composer/cache
+      - APP_ENV=${APP_ENV:-local}
+      - APP_ENV_FILE=.env.local
+      - RUN_MIGRATIONS=1
+      - RUN_SEEDERS=1
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9000"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - retailops
+
+  worker:
+    build:
+      context: .
+    image: retailops-app
+    container_name: retailops_worker
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+      - composer_cache:/composer/cache
+      - ./docker/environment/.env.local:/var/www/html/.env:ro
+    depends_on:
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["bash", "-lc", "/usr/local/bin/worker.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", 'pgrep -f "artisan queue:work" > /dev/null || exit 1']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - retailops
+
+  scheduler:
+    build:
+      context: .
+    image: retailops-app
+    container_name: retailops_scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+      - composer_cache:/composer/cache
+      - ./docker/environment/.env.local:/var/www/html/.env:ro
+    depends_on:
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["php", "artisan", "schedule:work"]
+    healthcheck:
+      test:
+        ["CMD-SHELL", 'pgrep -f "artisan schedule:work" > /dev/null || exit 1']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - retailops
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: retailops_nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost/up || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - retailops
+
+  db:
+    image: mysql:8.0
+    container_name: retailops_db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: retailops
+      MYSQL_USER: retailops
+      MYSQL_PASSWORD: retailops
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - retailops
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: retailops_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - retailops
+
+volumes:
+  db_data:
+  vendor:
+  composer_cache:
+
+networks:
+  retailops:
+    driver: bridge

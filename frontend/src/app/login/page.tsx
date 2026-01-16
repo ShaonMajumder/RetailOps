@@ -18,12 +18,13 @@ export default function LoginPage() {
     email: "",
     password: "",
     password_confirmation: "",
-    plan: "starter",
+    plan: "free",
   });
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+  const googleRegisterKey = "google_oauth_register";
 
   useEffect(() => {
     const oauthError = searchParams.get("error");
@@ -52,6 +53,10 @@ export default function LoginPage() {
     window.sessionStorage.removeItem("google_oauth_state");
 
     const completeGoogleLogin = async () => {
+      const registerPayload =
+        typeof window !== "undefined" ? window.sessionStorage.getItem(googleRegisterKey) : null;
+      const registerData = registerPayload ? JSON.parse(registerPayload) as { tenant_name?: string } : {};
+
       setMessage("Completing Google login...");
       setError(null);
       try {
@@ -62,7 +67,7 @@ export default function LoginPage() {
           user: { tenant_id: number; name: string; email: string; role: string; id: number };
         }>(settings, "/api/auth/google", {
           method: "POST",
-          body: { code, redirect_uri: redirectUri },
+          body: { code, redirect_uri: redirectUri, tenant_name: registerData.tenant_name },
           includeAuth: false,
           includeTenant: false,
         });
@@ -76,6 +81,10 @@ export default function LoginPage() {
       } catch (err) {
         const payload = err as { message?: string };
         setError(payload?.message || "Google login failed.");
+      } finally {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem(googleRegisterKey);
+        }
       }
     };
 
@@ -172,6 +181,22 @@ export default function LoginPage() {
     window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
   };
 
+  const handleGoogleRegister = () => {
+    setMessage(null);
+    setError(null);
+
+    if (!googleClientId) {
+      setError("Google client ID is not configured.");
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(googleRegisterKey, JSON.stringify({ tenant_name: registerForm.tenant_name }));
+    }
+
+    handleGoogleLogin();
+  };
+
   return (
     <div className="card" style={{ maxWidth: "520px", width: "100%" }}>
       <div className="card-title">RetailOps access</div>
@@ -235,9 +260,16 @@ export default function LoginPage() {
               value={registerForm.plan}
               onChange={(event) => setRegisterForm({ ...registerForm, plan: event.target.value })}
             />
-            <button className="btn primary" onClick={handleRegister}>
-              Create account
-            </button>
+            <div className="form-row">
+              <button className="btn primary" onClick={handleRegister} style={{ width: "100%" }}>
+                Create account
+              </button>
+            </div>
+            <div className="form-row">
+              <button className="btn ghost" onClick={handleGoogleRegister} style={{ width: "100%" }}>
+                Register with Google
+              </button>
+            </div>
           </>
         ) : (
           <>

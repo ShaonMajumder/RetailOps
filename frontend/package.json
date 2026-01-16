@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "demo:record": "node scripts/demo-record.js"
+    "demo:record": "node scripts/demo-record.js",
+    "demo:titles": "node scripts/demo-add-titles.js",
+    "demo:record+titles": "node scripts/demo-record-titles.js"
   },
   "dependencies": {
     "next": "16.1.2",

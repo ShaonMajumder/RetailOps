@@ -23,9 +23,9 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request)
     {
-        $plan = SubscriptionPlan::query()
-            ->where('slug', $request->input('plan', 'starter'))
-            ->firstOrFail();
+        $planSlug = $request->input('plan', 'free');
+        $plan = SubscriptionPlan::query()->where('slug', $planSlug)->first()
+            ?? SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail();
 
         $tenantName = $request->input('tenant_name');
         $slugBase = Str::slug($tenantName);
@@ -37,24 +37,14 @@ class AuthController extends Controller
             $suffix++;
         }
 
-        [$tenant, $user] = DB::transaction(function () use ($plan, $tenantName, $slug, $request) {
-            $tenant = Tenant::query()->create([
-                'subscription_plan_id' => $plan->id,
-                'name' => $tenantName,
-                'slug' => $slug,
-                'billing_email' => $request->input('email'),
-            ]);
-
-            $user = User::query()->create([
-                'tenant_id' => $tenant->id,
-                'name' => $request->input('name'),
-                'email' => $request->input('email'),
-                'password' => Hash::make($request->input('password')),
-                'role' => 'owner',
-            ]);
-
-            return [$tenant, $user];
-        });
+        [$tenant, $user] = $this->createTenantAndOwner(
+            $plan,
+            $tenantName,
+            $slug,
+            $request->input('email'),
+            $request->input('name'),
+            $request->input('password')
+        );
 
         $token = $user->createToken('api')->plainTextToken;
 
@@ -104,12 +94,40 @@ class AuthController extends Controller
         }
 
         $user = User::query()->where('email', $email)->first();
+        $googleId = $googleUser->getId();
 
         if (! $user) {
-            return $this->errorResponse('No account found for this email. Register first.', 404);
-        }
+            $tenantName = $request->input('tenant_name');
+            $displayName = $googleUser->getName() ?: $email;
 
-        $googleId = $googleUser->getId();
+            if (! $tenantName) {
+                $fallbackBase = trim((string) Str::of($displayName)->before('@')) ?: 'RetailOps';
+                $tenantName = $fallbackBase.' Store';
+            }
+
+            $plan = SubscriptionPlan::query()->where('slug', 'free')->first()
+                ?? SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail();
+
+            $slugBase = Str::slug($tenantName);
+            $slug = $slugBase;
+            $suffix = 1;
+
+            while (Tenant::query()->where('slug', $slug)->exists()) {
+                $slug = $slugBase.'-'.$suffix;
+                $suffix++;
+            }
+
+            [$tenant, $user] = $this->createTenantAndOwner(
+                $plan,
+                $tenantName,
+                $slug,
+                $email,
+                $displayName ?: 'Owner',
+                Str::random(32)
+            );
+
+            $tenant->load('subscriptionPlan');
+        }
 
         if ($user->google_id && $user->google_id !== $googleId) {
             return $this->errorResponse('Google account mismatch.', 403);
@@ -133,5 +151,33 @@ class AuthController extends Controller
         $user?->currentAccessToken()?->delete();
 
         return $this->successResponse('Logged out.');
+    }
+
+    private function createTenantAndOwner(
+        SubscriptionPlan $plan,
+        string $tenantName,
+        string $slug,
+        string $email,
+        string $name,
+        string $password
+    ): array {
+        return DB::transaction(function () use ($plan, $tenantName, $slug, $email, $name, $password) {
+            $tenant = Tenant::query()->create([
+                'subscription_plan_id' => $plan->id,
+                'name' => $tenantName,
+                'slug' => $slug,
+                'billing_email' => $email,
+            ]);
+
+            $user = User::query()->create([
+                'tenant_id' => $tenant->id,
+                'name' => $name,
+                'email' => $email,
+                'password' => Hash::make($password),
+                'role' => 'owner',
+            ]);
+
+            return [$tenant, $user];
+        });
     }
 }

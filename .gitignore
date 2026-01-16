@@ -26,4 +26,6 @@ Thumbs.db
 agent.md
 docs/
 frontend/.env.local
+frontend/public/demo-recordings/
+frontend/public/demo-recordings/last-video.json
 .env.bak

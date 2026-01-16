@@ -16,6 +16,7 @@ class GoogleLoginRequest extends FormRequest
         return [
             'code' => ['required', 'string'],
             'redirect_uri' => ['nullable', 'url'],
+            'tenant_name' => ['nullable', 'string', 'max:150'],
         ];
     }
 }

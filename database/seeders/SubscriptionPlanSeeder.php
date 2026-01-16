@@ -10,6 +10,16 @@ class SubscriptionPlanSeeder extends Seeder
     public function run(): void
     {
         SubscriptionPlan::query()->updateOrCreate(
+            ['slug' => 'free'],
+            [
+                'name' => 'Free',
+                'stripe_price_id' => 'price_free',
+                'price_cents' => 0,
+                'features' => ['Single store', 'Core POS features'],
+            ]
+        );
+
+        SubscriptionPlan::query()->updateOrCreate(
             ['slug' => 'starter'],
             [
                 'name' => 'Starter',

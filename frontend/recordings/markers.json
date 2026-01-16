@@ -1,0 +1,106 @@
+[
+  {
+    "label": "open_login",
+    "elapsed_ms": 342
+  },
+  {
+    "label": "submit_login",
+    "elapsed_ms": 1893
+  },
+  {
+    "label": "products_create",
+    "elapsed_ms": 3007
+  },
+  {
+    "label": "products_update",
+    "elapsed_ms": 8425
+  },
+  {
+    "label": "open_customers",
+    "elapsed_ms": 8777
+  },
+  {
+    "label": "customers_open_form",
+    "elapsed_ms": 9276
+  },
+  {
+    "label": "customers_create",
+    "elapsed_ms": 9451
+  },
+  {
+    "label": "customers_update",
+    "elapsed_ms": 14502
+  },
+  {
+    "label": "open_orders",
+    "elapsed_ms": 14857
+  },
+  {
+    "label": "orders_create",
+    "elapsed_ms": 16032
+  },
+  {
+    "label": "orders_pay",
+    "elapsed_ms": 16753
+  },
+  {
+    "label": "open_reports",
+    "elapsed_ms": 17177
+  },
+  {
+    "label": "run_daily_sales",
+    "elapsed_ms": 17883
+  },
+  {
+    "label": "run_top_products",
+    "elapsed_ms": 18073
+  },
+  {
+    "label": "run_low_stock",
+    "elapsed_ms": 18278
+  },
+  {
+    "label": "queue_snapshot",
+    "elapsed_ms": 18468
+  },
+  {
+    "label": "fetch_snapshot",
+    "elapsed_ms": 18714
+  },
+  {
+    "label": "open_billing",
+    "elapsed_ms": 18909
+  },
+  {
+    "label": "billing_subscribe",
+    "elapsed_ms": 19613
+  },
+  {
+    "label": "billing_refresh",
+    "elapsed_ms": 23360
+  },
+  {
+    "label": "open_profile",
+    "elapsed_ms": 23614
+  },
+  {
+    "label": "open_settings",
+    "elapsed_ms": 24303
+  },
+  {
+    "label": "save_settings",
+    "elapsed_ms": 24991
+  },
+  {
+    "label": "open_overview",
+    "elapsed_ms": 25173
+  },
+  {
+    "label": "cleanup_customers",
+    "elapsed_ms": 25975
+  },
+  {
+    "label": "cleanup_products",
+    "elapsed_ms": 27584
+  }
+]

@@ -167,6 +167,7 @@ const runDemo = async () => {
     context = await browser.newContext();
   }
   const page = await context.newPage();
+  let productId = "";
   let customerId = "";
 
   try {
@@ -201,6 +202,39 @@ const runDemo = async () => {
     }
     await page.waitForTimeout(300);
 
+    logMarker("products_create");
+    await page.getByPlaceholder("Name").fill("Demo Espresso Beans");
+    await page.getByPlaceholder("SKU").fill("DEMO-ESP-01");
+    await page.getByPlaceholder("Price").fill("24.99");
+    await page.getByPlaceholder("Stock", { exact: true }).fill("120");
+    await page.getByPlaceholder("Low stock threshold", { exact: true }).fill("10");
+    await Promise.all([
+      waitForApiResponse("POST", "/api/products"),
+      page.getByRole("button", { name: "Create" }).click(),
+    ]);
+    await waitForNotice("Product created.", "Failed to create product.");
+
+    await page.getByRole("button", { name: "Refresh list" }).click();
+    const productRows = page.locator("table tbody tr");
+    await page.waitForTimeout(300);
+    const productRow = productRows.filter({ hasText: "DEMO-ESP-01" }).first();
+    productId = await resolveRowId(productRow, productRows.first(), "1");
+
+    await page.getByPlaceholder("Product ID for update/delete").fill(productId);
+    await Promise.all([
+      waitForApiResponse("GET", `/api/products/${productId}`),
+      page.getByRole("button", { name: "Fetch" }).click(),
+    ]);
+    await waitForNotice("Product loaded.", "Failed to fetch product.");
+
+    logMarker("products_update");
+    await page.getByPlaceholder("Price").fill("26.50");
+    await Promise.all([
+      waitForApiResponse("PUT", `/api/products/${productId}`),
+      page.getByRole("button", { name: "Update" }).click(),
+    ]);
+    await waitForNotice("Product updated.", "Failed to update product.");
+
     logMarker("open_customers");
     await page.locator(".nav").getByRole("link", { name: "Customers", exact: true }).click();
     await page.waitForURL("**/customers");
@@ -220,7 +254,146 @@ const runDemo = async () => {
     await waitForNotice("Customer created.", "Failed to create customer.");
 
     await page.getByRole("button", { name: "Refresh list" }).click();
-    await page.waitForTimeout(1200);
+    const customerRows = page.locator("table tbody tr");
+    await page.waitForTimeout(300);
+    const customerRow = customerRows.filter({ hasText: "demo.customer@retailops.dev" }).first();
+    customerId = await resolveRowId(customerRow, customerRows.first(), "1");
+
+    await page.getByPlaceholder("Customer ID for update/delete").fill(customerId);
+    await Promise.all([
+      waitForApiResponse("GET", `/api/customers/${customerId}`),
+      page.getByRole("button", { name: "Fetch" }).click(),
+    ]);
+    await waitForNotice("Customer loaded.", "Failed to fetch customer.");
+
+    logMarker("customers_update");
+    await page.getByPlaceholder("Phone").fill("+1-415-555-0142");
+    await Promise.all([
+      waitForApiResponse("PUT", `/api/customers/${customerId}`),
+      page.getByRole("button", { name: "Update" }).click(),
+    ]);
+    await waitForNotice("Customer updated.", "Failed to update customer.");
+
+    logMarker("open_orders");
+    await page.locator(".nav").getByRole("link", { name: "Orders", exact: true }).click();
+    await page.waitForURL("**/orders");
+    await page.waitForTimeout(300);
+
+    await page.getByPlaceholder("Customer ID (optional)").fill(customerId);
+    await page.getByRole("button", { name: "Add item" }).click();
+    const productIdInputs = page.getByPlaceholder("Product ID");
+    await productIdInputs.nth(0).fill(productId);
+    await page.getByPlaceholder("Quantity").nth(0).fill("1");
+
+    logMarker("orders_create");
+    await Promise.all([
+      waitForApiResponse("POST", "/api/orders"),
+      page.getByRole("button", { name: "Create order" }).click(),
+    ]);
+    await waitForNotice("Order created.", "Failed to create order.");
+    await page.getByRole("button", { name: "Refresh list" }).click();
+    const orderRows = page.locator("table tbody tr");
+    await page.waitForTimeout(300);
+    const orderId = await resolveRowId(orderRows.first(), orderRows.first(), "1");
+
+    logMarker("orders_pay");
+    await page.getByPlaceholder("Order ID").fill(orderId);
+    await Promise.all([
+      waitForApiResponse("POST", `/api/orders/${orderId}/pay`),
+      page.getByRole("button", { name: "Pay" }).click(),
+    ]);
+    await waitForNotice("Order marked as paid.", "Failed to pay order.");
+
+    logMarker("open_reports");
+    await page.locator(".nav").getByRole("link", { name: "Reports", exact: true }).click();
+    await page.waitForURL("**/reports");
+    await page.waitForTimeout(500);
+    logMarker("run_daily_sales");
+    await Promise.all([
+      waitForApiResponse("GET", "/api/reports/daily-sales"),
+      page.getByRole("button", { name: "Daily sales" }).click(),
+    ]);
+    await waitForNotice("Daily sales loaded.", "Failed to load daily sales.");
+    logMarker("run_top_products");
+    await Promise.all([
+      waitForApiResponse("GET", "/api/reports/top-products"),
+      page.getByRole("button", { name: "Top products" }).click(),
+    ]);
+    await waitForNotice("Top products loaded.", "Failed to load top products.");
+    logMarker("run_low_stock");
+    await Promise.all([
+      waitForApiResponse("GET", "/api/reports/low-stock"),
+      page.getByRole("button", { name: "Low stock" }).click(),
+    ]);
+    await waitForNotice("Low stock report loaded.", "Failed to load low stock.");
+    logMarker("queue_snapshot");
+    await Promise.all([
+      waitForApiResponse("POST", "/api/reports/daily-sales/snapshot"),
+      page.getByRole("button", { name: "Queue snapshot" }).click(),
+    ]);
+    await waitForNotice("Snapshot queued.", "Failed to queue snapshot.");
+    logMarker("fetch_snapshot");
+    await Promise.all([
+      waitForApiResponse("GET", "/api/reports/daily-sales/snapshot"),
+      page.getByRole("button", { name: "Fetch snapshot" }).click(),
+    ]);
+    await waitForNotice("Snapshot retrieved.", "Snapshot not ready.");
+
+    logMarker("open_billing");
+    await page.locator(".nav").getByRole("link", { name: "Billing", exact: true }).click();
+    await page.waitForURL("**/billing");
+    await page.waitForTimeout(500);
+    logMarker("billing_subscribe");
+    await Promise.all([
+      waitForApiResponse("POST", "/api/billing/subscribe"),
+      page.getByRole("button", { name: "Create subscription" }).click(),
+    ]);
+    await waitForNotice("Subscription created.", "Failed to create subscription.");
+    logMarker("billing_refresh");
+    await Promise.all([
+      waitForApiResponse("GET", "/api/billing/subscription"),
+      page.getByRole("button", { name: "Refresh subscription" }).click(),
+    ]);
+    await waitForNotice("Subscription loaded.", "Failed to fetch subscription.");
+
+    logMarker("open_profile");
+    await page.locator(".nav").getByRole("link", { name: "Profile", exact: true }).click();
+    await page.waitForURL("**/profile");
+    await page.waitForTimeout(500);
+
+    logMarker("open_settings");
+    await page.locator(".nav").getByRole("link", { name: "Settings", exact: true }).click();
+    await page.waitForURL("**/settings");
+    await page.waitForTimeout(500);
+    logMarker("save_settings");
+    await page.getByRole("button", { name: "Save settings" }).click();
+    await page.getByText("Saved.").waitFor({ timeout: 5000 });
+
+    logMarker("open_overview");
+    await page.locator(".nav").getByRole("link", { name: "Overview", exact: true }).click();
+    await page.waitForURL("**/");
+    await page.waitForTimeout(600);
+
+    logMarker("cleanup_customers");
+    await page.goto(`${FRONTEND_URL}/customers`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Create customer" }).click();
+    await page.getByPlaceholder("Customer ID for update/delete").fill(customerId);
+    await Promise.all([
+      waitForApiResponse("DELETE", `/api/customers/${customerId}`),
+      page.getByRole("button", { name: "Delete" }).click(),
+    ]);
+    await waitForNotice("Customer deleted.", "Failed to delete customer.");
+
+    logMarker("cleanup_products");
+    await page.goto(`${FRONTEND_URL}/products`, { waitUntil: "networkidle" });
+    await page.getByPlaceholder("Product ID for update/delete").fill(productId);
+    await Promise.all([
+      waitForApiResponse("DELETE", `/api/products/${productId}`),
+      page.getByRole("button", { name: "Delete" }).click(),
+    ]);
+    await waitForNotice("Product deleted.", "Failed to delete product.");
+
+    await page.waitForTimeout(1500);
   } catch (error) {
     console.error("Demo recording failed:", error);
     process.exitCode = 1;

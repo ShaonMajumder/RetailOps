@@ -36,6 +36,15 @@ export default function ReportsPage() {
   const [snapshotKey, setSnapshotKey] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const normalizeArray = <T,>(value: T[] | { data?: T[] } | null | undefined) => {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (value && Array.isArray(value.data)) {
+      return value.data;
+    }
+    return [];
+  };
 
   const runDailySales = async () => {
     setError(null);
@@ -43,8 +52,11 @@ export default function ReportsPage() {
       if (!settings.token) {
         throw new Error("Login required to load reports.");
       }
-      const payload = await apiRequest<DailySalesRow[]>(settings, `/api/reports/daily-sales?from=${from}&to=${to}`);
-      setDailySales(payload.data || []);
+      const payload = await apiRequest<DailySalesRow[] | { data?: DailySalesRow[] }>(
+        settings,
+        `/api/reports/daily-sales?from=${from}&to=${to}`
+      );
+      setDailySales(normalizeArray(payload.data));
       setMessage("Daily sales loaded.");
     } catch (err) {
       const payload = err as { message?: string };
@@ -58,11 +70,11 @@ export default function ReportsPage() {
       if (!settings.token) {
         throw new Error("Login required to load reports.");
       }
-      const payload = await apiRequest<TopProductRow[]>(
+      const payload = await apiRequest<TopProductRow[] | { data?: TopProductRow[] }>(
         settings,
         `/api/reports/top-products?from=${from}&to=${to}`
       );
-      setTopProducts(payload.data || []);
+      setTopProducts(normalizeArray(payload.data));
       setMessage("Top products loaded.");
     } catch (err) {
       const payload = err as { message?: string };
@@ -76,8 +88,11 @@ export default function ReportsPage() {
       if (!settings.token) {
         throw new Error("Login required to load reports.");
       }
-      const payload = await apiRequest<LowStockRow[]>(settings, "/api/reports/low-stock");
-      setLowStock(payload.data || []);
+      const payload = await apiRequest<LowStockRow[] | { data?: LowStockRow[] }>(
+        settings,
+        "/api/reports/low-stock"
+      );
+      setLowStock(normalizeArray(payload.data));
       setMessage("Low stock report loaded.");
     } catch (err) {
       const payload = err as { message?: string };
@@ -110,11 +125,11 @@ export default function ReportsPage() {
       if (!settings.token) {
         throw new Error("Login required to fetch snapshot.");
       }
-      const payload = await apiRequest<DailySalesRow[]>(
+      const payload = await apiRequest<DailySalesRow[] | { data?: DailySalesRow[] }>(
         settings,
         `/api/reports/daily-sales/snapshot?from=${from}&to=${to}`
       );
-      setDailySales(payload.data || []);
+      setDailySales(normalizeArray(payload.data));
       setMessage("Snapshot retrieved.");
     } catch (err) {
       const payload = err as { message?: string };

@@ -4,6 +4,8 @@ RetailOps is a cloud-based, multi-tenant POS & inventory management SaaS for sma
 
 Version: 1.2.6
 
+Demo Video : https://www.youtube.com/watch?v=7DK-HktfHKg
+
 ## Product overview
 
 RetailOps targets:
@@ -45,6 +47,10 @@ Subscriptions are managed using Laravel Cashier (Stripe).
     docker compose exec app php artisan key:generate
     docker compose exec app php artisan migrate --seed
     ```
+4. Stop the stack when done:
+    ```bash
+    docker compose down
+    ```
 
 API base URL: `http://localhost:8080`
 
@@ -60,7 +66,7 @@ npm install
 npm run dev
 ```
 
-Frontend URL: `http://localhost:3000`
+Frontend URL: `http://localhost:3000/`
 
 ## Demo recording (Playwright)
 
